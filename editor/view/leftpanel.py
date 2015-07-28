@@ -6,6 +6,7 @@ import wx
 
 from editor.model.post import Post
 from editor.model.config import Config
+from addpost import AddPostDialog
 
 
 class LeftPanel(wx.Panel):
@@ -35,22 +36,30 @@ class LeftPanel(wx.Panel):
         self.load_config()
 
     def on_add_post_btn_click(self, event):
-        pass
+        dlg = AddPostDialog(self)
+        ret = dlg.ShowModal()
+        if ret == wx.ID_OK:
+            dlg.property_edit.sync_property()
+            post = dlg.property_edit.post
+            post.file_path = os.path.join(self.root_path, "_posts", post.file_path)
+            dlg.property_edit.post.save()
+            self.update_post_list(self.root_path)
+        dlg.Destroy()
 
     def on_setting_btn_click(self, event):
-        dlg = SettingDialog(None, -1, "Setting", root_path=self.root_path)
+        dlg = SettingDialog(self, -1, "Setting", root_path=self.root_path)
         ret = dlg.ShowModal()
         if ret == wx.ID_OK:
             self.set_root_path(dlg.dir_path)
         dlg.Destroy()
 
     def set_root_path(self, root_path):
-        post_path = os.path.join(root_path, "_posts")
-        if os.path.exists(root_path) and os.path.exists(post_path):
+        if os.path.exists(root_path):
             self.root_path = root_path
-            self.update_post_list(post_path)
+            self.update_post_list(root_path)
 
-    def update_post_list(self, posts_path):
+    def update_post_list(self, root_path):
+        posts_path = os.path.join(root_path, "_posts")
         if not os.path.exists(posts_path) or not os.path.isdir(posts_path):
             return
         self.post_list = []

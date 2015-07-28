@@ -12,8 +12,7 @@ class Post:
         self.file_name = os.path.basename(file_path)
         self.property = {}
         self.content = ""
-        self.markdown_preview = ""
-        self.is_modified = False
+        self.is_load = False
         self.is_open = False
 
     def parse(self):
@@ -40,7 +39,9 @@ class Post:
             line = fp.readline()
         fp.close()
 
-    def open(self):
+    def _load(self):
+        if self.is_load:
+            return
         if not os.path.exists(self.file_path) or not os.path.isfile(self.file_path):
             return
         fp = codecs.open(self.file_path, 'r', 'utf-8')
@@ -59,27 +60,25 @@ class Post:
             line = fp.readline()
         self.content = fp.read()
         fp.close()
-        self.update_markdown()
+        self.is_load = True
+
+    def open(self):
+        if not self.is_load:
+            self._load()
         self.is_open = True
 
-    def save(self):
-        if not self.is_modified:
-            return
-        if not os.path.exists(self.file_path) or not os.path.isfile(self.file_path):
-            return
+    def close(self):
+        self.is_open = False
 
+    def save(self):
+        # if not os.path.isfile(self.file_path):
+        #     return
         fp = codecs.open(self.file_path, 'w', 'utf-8')
         fp.write(u'---\n')
-        for (key, value) in self.property:
-            line = u"%s: %s\n" % key, value
+        for key in self.property:
+            value = self.property[key]
+            line = u"%s: %s\n" % (key, value)
             fp.write(line)
         fp.write(u'---\n\n')
         fp.write(self.content)
         fp.close()
-
-        self.is_modified = False
-
-    def update_markdown(self):
-        if self.content == "":
-            return
-        self.markdown_preview = markdown.markdown(self.content, extensions=['gfm'])
