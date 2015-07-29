@@ -22,6 +22,7 @@ class Image:
         self.key = ""
         self.url_path = ""
         self.mime_type = ""
+        self.post_file_name = ""
 
     def parse(self, dic):
         self.title = dic.get('title', '')
@@ -32,12 +33,15 @@ class Image:
         self.url_path = dic.get('url_path', '')
         self.key = dic.get('key', '')
         self.mime_type = dic.get('mime_type', '')
+        self.post_file_name = dic.get('post_file_name', '')
 
-        post_file_name = dic.get('post_file_name', '')
-        if post_file_name != "":
-            self.post = global_post_manager.get_post(post_file_name)
+        if self.post_file_name != "":
+            self.post = global_post_manager.get_post(self.post_file_name)
 
     def dump(self):
+        post_file_name = self.post_file_name
+        if self.post:
+            post_file_name = self.post.file_name
         dic = {
             'title': self.title,
             'alt': self.alt,
@@ -46,7 +50,7 @@ class Image:
             'prefix': self.prefix,
             'url_path': self.url_path,
             'key': self.key,
-            'post_file_name': self.post.file_name,
+            'post_file_name': post_file_name,
             'mime_type': self.mime_type
         }
         return dic
@@ -78,7 +82,7 @@ class ImageManager:
         self.image_list = []
 
     def get_image_list(self, post):
-        image_list = [img for img in self.image_list if img.post == post]
+        image_list = [img for img in self.image_list if img.post_file_name == post.file_name]
         return image_list
 
     def save(self):

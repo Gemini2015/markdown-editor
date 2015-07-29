@@ -29,7 +29,7 @@ class LeftPanel(wx.Panel):
 
         self.SetSizer(sizer)
 
-        self.load_config()
+        self.update_post_list()
 
     def on_add_post_btn_click(self, event):
         dlg = AddPostDialog(self)
@@ -39,27 +39,21 @@ class LeftPanel(wx.Panel):
             post = dlg.property_edit.post
             post.file_path = os.path.join(global_config.root_path, "_posts", post.file_path)
             dlg.property_edit.post.save()
-            self.update_post_list(global_config.root_path)
+            self.update_post_list()
         dlg.Destroy()
 
     def on_setting_btn_click(self, event):
         dlg = SettingDialog(self, -1, "Setting", root_path=global_config.root_path)
-        dlg.ShowModal()
+        ret = dlg.ShowModal()
         dlg.Destroy()
+        if ret == wx.ID_OK:
+            self.update_post_list()
 
-    def set_root_path(self, root_path):
-        if os.path.exists(root_path):
-            global_config.root_path = root_path
-            self.update_post_list(root_path)
-
-    def update_post_list(self, root_path):
+    def update_post_list(self):
         self.post_list_box.Clear()
         for post in global_post_manager.post_list:
             title = post.property.get('title', post.file_name)
             self.post_list_box.Append(title, post)
-
-    def load_config(self):
-        self.set_root_path(global_config.root_path)
 
 
 class SettingDialog(wx.Dialog):
@@ -123,5 +117,8 @@ class SettingDialog(wx.Dialog):
         global_config.secret_key = property_list.get('Secret Key', '')
         global_config.domain_name = property_list.get('Domain', '')
         global_config.bucket_name = property_list.get('Bucket Name', '')
+
+        if global_config.root_path != "":
+            global_post_manager.load()
 
         event.Skip(True)
