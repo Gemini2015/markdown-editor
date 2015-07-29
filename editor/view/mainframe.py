@@ -44,7 +44,6 @@ class MainFrame(wx.Frame):
         self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.evt_aui_notebook_page_changed)
         self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.evt_aui_notebook_page_close)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.evt_list_box_d_click)
-        self.Bind(wx.EVT_CLOSE, self.on_main_frame_close)
         self.Bind(wx.EVT_TIMER, self.on_update_markdown_preview_timer)
 
         # Load Markdown prefix & suffix
@@ -58,10 +57,6 @@ class MainFrame(wx.Frame):
         # Set a timer
         self.update_markdown_preview_timer = wx.Timer(self)
         #self.update_markdown_preview_timer.Start(5000)
-
-    def on_main_frame_close(self, event):
-        self.left_panel.save_config()
-        event.Skip(True)
 
     def evt_list_box_d_click(self, event):
         post = event.GetClientData()

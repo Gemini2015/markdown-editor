@@ -4,17 +4,16 @@ __author__ = 'chengche'
 import os
 import wx
 
-from editor.model.post import Post
-from editor.model.config import Config
+from editor.model.post import *
+from editor.model.config import *
 from addpost import AddPostDialog
+import wx.propgrid as wxpg
 
 
 class LeftPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, style=wx.SIMPLE_BORDER | wx.TAB_TRAVERSAL)
 
-        self.root_path = ""
-        self.post_list = []
         self.post_list_box = wx.ListBox(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -30,9 +29,6 @@ class LeftPanel(wx.Panel):
 
         self.SetSizer(sizer)
 
-        # load config
-        self.config = Config()
-        self.config.load()
         self.load_config()
 
     def on_add_post_btn_click(self, event):
@@ -41,47 +37,29 @@ class LeftPanel(wx.Panel):
         if ret == wx.ID_OK:
             dlg.property_edit.sync_property()
             post = dlg.property_edit.post
-            post.file_path = os.path.join(self.root_path, "_posts", post.file_path)
+            post.file_path = os.path.join(global_config.root_path, "_posts", post.file_path)
             dlg.property_edit.post.save()
-            self.update_post_list(self.root_path)
+            self.update_post_list(global_config.root_path)
         dlg.Destroy()
 
     def on_setting_btn_click(self, event):
-        dlg = SettingDialog(self, -1, "Setting", root_path=self.root_path)
-        ret = dlg.ShowModal()
-        if ret == wx.ID_OK:
-            self.set_root_path(dlg.dir_path)
+        dlg = SettingDialog(self, -1, "Setting", root_path=global_config.root_path)
+        dlg.ShowModal()
         dlg.Destroy()
 
     def set_root_path(self, root_path):
         if os.path.exists(root_path):
-            self.root_path = root_path
+            global_config.root_path = root_path
             self.update_post_list(root_path)
 
     def update_post_list(self, root_path):
-        posts_path = os.path.join(root_path, "_posts")
-        if not os.path.exists(posts_path) or not os.path.isdir(posts_path):
-            return
-        self.post_list = []
-        file_list = os.listdir(posts_path)
-        for post_file in file_list:
-            post_file_path = os.path.join(posts_path, post_file)
-            if not os.path.isfile(post_file_path):
-                continue
-            post = Post(post_file_path)
-            post.parse()
-            self.post_list.append(post)
         self.post_list_box.Clear()
-        for post in self.post_list:
+        for post in global_post_manager.post_list:
             title = post.property.get('title', post.file_name)
             self.post_list_box.Append(title, post)
 
     def load_config(self):
-        self.set_root_path(self.config.root_path)
-
-    def save_config(self):
-        self.config.root_path = self.root_path
-        self.config.save()
+        self.set_root_path(global_config.root_path)
 
 
 class SettingDialog(wx.Dialog):
@@ -103,20 +81,9 @@ class SettingDialog(wx.Dialog):
         # contents
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        h_box = wx.BoxSizer(wx.HORIZONTAL)
-
-        label = wx.StaticText(self, -1, "Root Path")
-        h_box.Add(label, 0, wx.ALIGN_CENTRE | wx.ALL, 5)
-
-        self.dir_path = root_path
-        self.text = wx.TextCtrl(self, -1, self.dir_path, size=(250, -1))
-        h_box.Add(self.text, 1, wx.ALIGN_CENTRE | wx.ALL, 5)
-
-        browser = wx.Button(self, -1, "Browser")
-        h_box.Add(browser, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.evt_button_click, browser)
-
-        sizer.Add(h_box, 0, wx.GROW | wx.ALIGN_CENTER_VERTICAL | wx.ALL | wx.EXPAND, 5)
+        self.property_grid = wxpg.PropertyGrid(self)
+        self.update_property_grid()
+        sizer.Add(self.property_grid, 1, wx.EXPAND | wx.ALL)
 
         line = wx.StaticLine(self, -1, size=(20, -1), style=wx.LI_HORIZONTAL)
         sizer.Add(line, 0, wx.GROW | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.TOP, 5)
@@ -128,6 +95,7 @@ class SettingDialog(wx.Dialog):
             btn_sizer.AddButton(btn)
 
         btn = wx.Button(self, wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self.on_ok, btn)
         btn.SetDefault()
         btn_sizer.AddButton(btn)
 
@@ -140,11 +108,20 @@ class SettingDialog(wx.Dialog):
         self.SetSizer(sizer)
         sizer.Fit(self)
 
-    def evt_button_click(self, event):
-        dlg = wx.DirDialog(self, "Choose a root dir", style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
-        dlg.CenterOnParent()
-        ret = dlg.ShowModal()
-        if ret == wx.ID_OK:
-            self.dir_path = dlg.GetPath()
-            self.text.WriteText(self.dir_path)
-        dlg.Destroy()
+    def update_property_grid(self):
+        self.property_grid.Append(wxpg.DirProperty("Root Path", value=global_config.root_path))
+        self.property_grid.Append(wxpg.StringProperty("Access Key", value=global_config.access_key))
+        self.property_grid.Append(wxpg.StringProperty("Secret Key", value=global_config.secret_key))
+        self.property_grid.Append(wxpg.StringProperty("Domain", value=global_config.domain_name))
+        self.property_grid.Append(wxpg.StringProperty("Bucket Name", value=global_config.bucket_name))
+
+    def on_ok(self, event):
+        property_list = self.property_grid.GetPropertyValues(as_strings=True)
+
+        global_config.root_path = property_list.get('Root Path', '')
+        global_config.access_key = property_list.get('Access Key', '')
+        global_config.secret_key = property_list.get('Secret Key', '')
+        global_config.domain_name = property_list.get('Domain', '')
+        global_config.bucket_name = property_list.get('Bucket Name', '')
+
+        event.Skip(True)

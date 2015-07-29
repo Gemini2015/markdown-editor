@@ -4,6 +4,7 @@ __author__ = 'chengche'
 import os
 import codecs
 import markdown
+from config import *
 
 
 class Post:
@@ -82,3 +83,34 @@ class Post:
         fp.write(u'---\n\n')
         fp.write(self.content)
         fp.close()
+
+
+class PostManager:
+    def __init__(self):
+        self.post_list = []
+
+    def load(self):
+        root_path = global_config.root_path
+        if root_path == "":
+            return
+        posts_path = os.path.join(root_path, "_posts")
+        if not os.path.exists(posts_path) or not os.path.isdir(posts_path):
+            return
+        self.post_list = []
+        file_list = os.listdir(posts_path)
+        for post_file in file_list:
+            post_file_path = os.path.join(posts_path, post_file)
+            if not os.path.isfile(post_file_path):
+                continue
+            post = Post(post_file_path)
+            post.parse()
+            self.post_list.append(post)
+
+    def get_post(self, file_name):
+        for post in self.post_list:
+            if post.file_name == file_name:
+                return post
+        return None
+
+
+global_post_manager = PostManager()

@@ -61,3 +61,4 @@ target/
 
 # config file
 config.json
+image-cache.json

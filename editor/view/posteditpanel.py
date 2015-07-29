@@ -4,6 +4,9 @@ __author__ = 'chengche'
 import wx
 from posteditctl import PostEditCtl
 from propertyedit import PropertyEdit
+from editor.model.image import *
+import wx.propgrid as wxpg
+from addimage import AddImageDialog
 
 
 class PostEditPanel(wx.Panel):
@@ -60,7 +63,13 @@ class PostEditPanel(wx.Panel):
         win.Popup()
 
     def on_manage_image(self, event):
-        pass
+        win = ImagePopupWindow(self, self.post, wx.SIMPLE_BORDER)
+
+        btn = event.GetEventObject()
+        pos = btn.ClientToScreen((0, 0))
+        sz = btn.GetSize()
+        win.Position(pos, (0, sz[1]))
+        win.Popup()
 
     def is_modified(self):
         return self.edit.is_modified()
@@ -81,3 +90,50 @@ class PropertyPopupWindow(wx.PopupTransientWindow):
 
         self.SetSizer(sizer)
         self.Fit()
+
+
+class ImagePopupWindow(wx.PopupTransientWindow):
+    def __init__(self, parent, post, style):
+        wx.PopupTransientWindow.__init__(self, parent, style)
+
+        self.post = post
+        self.image_list = [] # global_image_manager.get_image_list(post)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.property_grid = wxpg.PropertyGrid(self)
+        self.update_property_grid()
+        sizer.Add(self.property_grid, 1, wx.EXPAND | wx.ALL)
+
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        btn = wx.Button(self, label="Add")
+        self.Bind(wx.EVT_BUTTON, self.on_add_image, btn)
+        hbox.Add(btn, 1, wx.CENTRE | wx.EXPAND)
+
+        btn = wx.Button(self, label="Delete")
+        self.Bind(wx.EVT_BUTTON, self.on_delete_image, btn)
+        hbox.Add(btn, 1, wx.CENTRE | wx.EXPAND)
+
+        sizer.Add(hbox, 0, wx.EXPAND)
+
+        self.update_property_grid()
+
+        self.SetSizer(sizer)
+        self.Fit()
+
+    def update_property_grid(self):
+        self.image_list = global_image_manager.get_image_list(self.post)
+        self.property_grid.Clear()
+        for image in self.image_list:
+            self.property_grid.Append(wxpg.StringProperty(image.file_name, value=image.url_path))
+
+    def on_add_image(self, event):
+        dlg = AddImageDialog(self, self.post)
+        ret = dlg.ShowModal()
+        dlg.Destroy()
+        if ret == wx.ID_OK:
+            self.update_property_grid()
+
+    def on_delete_image(self, event):
+        pass
