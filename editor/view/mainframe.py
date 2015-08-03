@@ -21,6 +21,9 @@ class MainFrame(wx.Frame):
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
         self.SetMinSize((640, 480))
 
+        icon = wx.Icon("res/img/app_icon_32px.ico")
+        self.SetIcon(icon)
+
         splitter = MultiSplitterWindow(self, style=wx.SP_LIVE_UPDATE)
         self.splitter_wnd = splitter
 
