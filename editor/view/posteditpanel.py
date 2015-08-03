@@ -97,13 +97,18 @@ class ImagePopupWindow(wx.PopupTransientWindow):
         wx.PopupTransientWindow.__init__(self, parent, style)
 
         self.post = post
-        self.image_list = [] # global_image_manager.get_image_list(post)
+        self.image_list = []  # global_image_manager.get_image_list(post)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
+
+        label = wx.StaticText(self, label=u"右键点击图片条目，将自动复制该图片Markdown语句至系统剪切板")
+        sizer.Add(label, 0, wx.EXPAND | wx.ALL)
 
         self.property_grid = wxpg.PropertyGrid(self)
         self.update_property_grid()
         sizer.Add(self.property_grid, 1, wx.EXPAND | wx.ALL)
+
+        self.Bind(wxpg.EVT_PG_RIGHT_CLICK, self.on_right_click_on_property, self.property_grid)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -127,9 +132,11 @@ class ImagePopupWindow(wx.PopupTransientWindow):
         self.property_grid.Clear()
         for image in self.image_list:
             self.property_grid.Append(wxpg.StringProperty(image.file_name, value=image.url_path))
+        self.property_grid.Fit()
 
     def on_add_image(self, event):
         dlg = AddImageDialog(self, self.post)
+        self.Show(False)
         ret = dlg.ShowModal()
         dlg.Destroy()
         if ret == wx.ID_OK:
@@ -137,3 +144,21 @@ class ImagePopupWindow(wx.PopupTransientWindow):
 
     def on_delete_image(self, event):
         pass
+
+    def on_right_click_on_property(self, event):
+        image_name = event.GetPropertyName()
+        select_image = None
+        for image in self.image_list:
+            if image.file_name == image_name:
+                select_image = image
+                break
+        if select_image is None:
+            return
+        title = select_image.title
+        url = select_image.url_path
+        alt = select_image.alt
+        exp = "![%s](%s %s)" % (title, url, alt)
+        clip_board = wx.Clipboard_Get()
+        if clip_board.Open():
+            clip_board.SetData(wx.TextDataObject(exp))
+            clip_board.Close()
